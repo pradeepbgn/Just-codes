@@ -1,0 +1,208 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+public class lunch
+{
+	static List<String> avoid= new ArrayList<String>();
+	static List<String> val= new ArrayList<String>();
+	static List<String> samdest= new ArrayList<String>();
+	static List<String> pegdest= new ArrayList<String>();
+	static List<String> samstart= new ArrayList<String>();
+	static List<String> pegstart= new ArrayList<String>();
+	static boolean imap=false, iavoid=false, ipeg=false, isam=false;
+    static int size,s1,s2,large=0,res=0,idx=0;
+    static HashMap<String,List<String>> hm1 = new HashMap<String,List<String>>();
+    static HashMap<String,List<String>> hm2 = new HashMap<String,List<String>>();
+    
+    public static void main (String [] args) throws IOException
+    {
+        BufferedReader inFile = new BufferedReader (new FileReader ("input.txt"));
+        String line;
+        line = inFile.readLine();
+       
+        while(line != null) 
+        {    
+        	if (line.toLowerCase().contains("avoid:"))
+        	{
+        		imap=false;
+        		iavoid=true;
+        		idx=0;
+        		line = inFile.readLine();
+       
+           	}	
+        	else if (line.toLowerCase().contains("peggy:"))
+        	{
+        		iavoid=false;
+        		ipeg=true;
+        		idx=0;
+        		line = inFile.readLine();
+        
+           	}	
+        	else if(line.toLowerCase().contains("sam:"))
+        	{
+        		ipeg=false;
+        		isam=true;
+        		idx=0;
+        		line = inFile.readLine();
+        
+           	}	
+        	else 
+        	{
+        		if(line.toLowerCase().contains("map:"))
+        		{
+        			imap=true;
+        			line = inFile.readLine();
+        		}
+        		
+           	}	
+        	
+           	String[] parts = line.split("\\s+");
+           
+        	
+        	if (imap)
+        	{
+       
+        		if(hm1.containsKey(parts[0]))
+        		{
+        		 List<String> h1= hm1.get(parts[0]);
+        		 h1.add(parts[1]);
+        		}
+        		else
+        		{
+        		 List<String> h1= new ArrayList<String>();
+        		 h1.add(parts[1]);
+        	 	 hm1.put(parts[0],h1);
+        		}
+        		
+        		if(hm2.containsKey(parts[1]))
+        		{
+        		 List<String> h2= hm2.get(parts[1]);
+        		 h2.add(parts[0]);
+        		}
+        		else
+        		{
+        		 List<String> h2= new ArrayList<String>();
+        		 h2.add(parts[0]);
+        	 	 hm2.put(parts[1],h2);
+        		}
+        	}	  
+        	else if (iavoid)
+        	{
+        		size=parts.length;
+        		for(int i=0;i<size;i++)
+        		{
+        	       avoid.add(parts[i]); 
+        	    }
+        	}
+        	else if (ipeg)
+        	{
+        		size=parts.length;
+        		for(int i=0;i<size;i++)
+        		{
+        	       pegstart.add(parts[i]); 
+        	    }
+        	}	
+        	else if (isam)
+        	{
+        		size=parts.length;
+        		for(int i=0;i<size;i++)
+        		{
+        	       samstart.add(parts[i]); 
+        	    }
+        	}
+        	if(line != null)
+        	{
+        	   line=inFile.readLine();
+        	}
+       
+        }
+        
+        inFile.close();
+        pegdest.addAll(pegstart);
+        searchpeg(pegstart,pegdest);
+        pegdest=removeDup(pegdest);
+        samdest.addAll(samstart);
+        searchsam(samstart,samdest);
+        samdest=removeDup(samdest);
+        List<String> common = new ArrayList<String>(pegdest);
+        common.retainAll(samdest);
+        System.out.println("The Common place of meeting for Sam & Peggy:");
+        for (int j = 0; j < common.size(); j++)
+        {
+            System.out.print("  " + common.get(j));
+         }
+        
+    }
+       
+    public static List<String> searchpeg(List<String> arr1,List<String> arr2)
+    {
+    	s1=arr1.size();
+    	List<String> temp= new ArrayList<String>();
+    	for(int j=0;j<s1;j++)
+    	{
+    		val=hm1.get(arr1.get(j));
+    		if (val!=null)
+    		{
+    			for(int x=0;x<avoid.size();x++)
+        		{
+        			val.remove(avoid.get(x));
+        		}
+        		temp.addAll(val);
+        		pegdest.addAll(val);
+        		
+    		}
+    		
+    	}
+    	if(temp.size()>0)
+    	{
+    	   searchpeg(temp,pegdest);
+    	}
+    	return pegdest;
+        
+    }
+    
+    public static List<String> searchsam(List<String> arr1,List<String> arr2)
+    {
+    	s2=arr1.size();
+    	List<String> temp= new ArrayList<String>();
+    	
+    	for(int j=0;j<s2;j++)
+    	{
+    		val=hm2.get(arr1.get(j));
+    		if (val!=null)
+    		{
+    			for(int x=0;x<avoid.size();x++)
+        		{
+        			val.remove(avoid.get(x));
+        			
+        		}
+        		temp.addAll(val);
+        		samdest.addAll(val);
+        		
+    		}
+    		
+    	}
+    	if(temp.size()>0)
+    	{
+    	   searchsam(temp,samdest);
+    	}
+    	return samdest;
+     
+        
+    }
+    public static List<String> removeDup(List<String> arlList)
+    {
+    	HashSet h = new HashSet(arlList);
+    	   arlList.clear();
+    	   arlList.addAll(h);
+
+    return arlList;
+    }
+}
