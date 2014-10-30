@@ -1,0 +1,454 @@
+
+/* This program finds you the list of possible destinations for having between two friends given 
+ * the city map(as edges & nodes) and starting point of two friends and travel instructions 
+ */
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
+/*import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+*/
+public class sample
+{
+	static int k,m,t,r,c;    
+	static HashMap<String,String> classify_set = new HashMap<String,String>();
+	static HashMap<String,String> val_set = new HashMap<String,String>();
+	static HashMap<Integer,String> idx_set = new HashMap<Integer,String>();
+	static String[][] val_array = null;
+    public static void main (String [] args) throws IOException
+    {
+    	System.out.println("Enter the name of input file : " );
+    	Scanner i1 = new Scanner(System.in);
+    	String ip1=i1.nextLine();
+//    	String ip1 = args[0];
+    	System.out.println("Enter the name of cross validation file : " );
+    	Scanner i2 = new Scanner(System.in);
+//    	String ip2 = args[1];
+    	String ip2=i2.nextLine();
+        BufferedReader inFile1 = new BufferedReader (new FileReader (ip1));
+        String line;
+        line = inFile1.readLine();
+        boolean first = true;
+        int[][] permutation = null;
+        String[][] cross = null;
+               
+        int x=0,y=0; //val1=0,val2=0;
+        String str1,str2;
+        while(line != null) 
+        {   
+        	
+        	if (first)
+        	{
+        		String[] split = line.split("\\s+");
+        		k= Integer.parseInt(split[0]); 
+        		m=Integer.parseInt(split[1]);
+        		t = Integer.parseInt(split[2]); 
+        		permutation = new int[t][m];      
+        		first=false;	
+        	}
+        	else
+        	{
+        		//int[][] permutation = new int[k][m];
+        		if(x<t)
+        		{
+        			
+        			String[] split = line.split("\\s+");
+        			for(y=0;y<m;y++)
+        			{
+//        				System.out.print(x+ ""+y+" ");
+        				permutation[x][y] = Integer.parseInt(split[y]);
+          			}
+        			x++;
+        		}
+        	}
+        	
+        	line = inFile1.readLine();
+        	
+        }
+        inFile1.close();
+        //i1.close();
+        	
+        BufferedReader inFile2 = new BufferedReader (new FileReader (ip2));
+        first=true;
+        line = inFile2.readLine();
+        x=0;
+        while(line != null)
+        {
+        	
+        	if (first)
+        	{
+        		String[] split = line.split("\\s+");
+        		r= Integer.parseInt(split[0]); 
+        		c=Integer.parseInt(split[1]);
+//        		System.out.println(">> "+r);
+//        		System.out.println(">> "+c);
+        	    first=false;
+        	    cross = new String[r][c];
+        	}
+        	else
+        	{
+        	//	String[][] cross = new String[r][c];
+        		if (x<r)
+        		{
+        			String[] split = line.split("\\s+");
+        			for(y=0;y<c;y++)
+        			{
+//        				System.out.print(x+ ""+y+" ");
+        				cross[x][y] = split[y];
+        			}
+        			x++;
+        		}
+        	}
+        	
+        	line = inFile2.readLine();
+        	
+        }
+        inFile2.close();
+        //i2.close();
+//        System.out.println(">> "+m);
+//        System.out.println(">> "+k);
+        int[] foldset1=kfold(m,k);
+        val_array = new String[m][3];
+        int t1=0;
+		
+        for(x=0;x<r;x++)
+        {
+        	for(y=0;y<c;y++)
+        	{
+        		str1=x+" "+y;
+    			str2=cross[x][y];
+    			if (!cross[x][y].contains("."))
+        		{
+        			val_array[t1][1]=str1;
+        			val_array[t1][2]=str2;
+        			t1++;
+        		}
+        	}
+        }
+		int t2=0;
+		for(x=0;x<r;x++)
+        {
+        	for(y=0;y<c;y++)
+        	{
+//        		System.out.print(cross[x][y]);
+        		str1=x+" "+y;
+    			str2=cross[x][y];
+        		if (!cross[x][y].contains("."))
+        		{
+        			val_set.put(str1,str2);
+        			idx_set.put(t2,str1);
+        			t2++;
+        		}
+        		else
+        		{
+        			classify_set.put(str1,str2);
+        		}
+        	}
+//        	System.out.println("");
+        }
+          
+		int nnsize=5;
+		for(x=1;x<=nnsize;x++)
+		{
+			double[] errlist=new double[t];
+	       	double temp=0.0;
+			
+	       	for(y=0;y<t;y++)
+	       	{
+	       		errlist[y]=finderror(permutation[y],foldset1,x);
+	       		temp=temp+errlist[y];
+	       	}
+			
+	       	double permerror=temp/(double)t;
+	       	System.out.println("Error 'e' for "+x+"-nn : "+permerror);
+	       	double sd=0.0;
+	       	
+	       	for(y=0;y<t;y++)
+	       	{
+	       		sd= sd + (permerror-errlist[y]) * (permerror-errlist[y]);
+	       	}
+	       	
+	       	double sigma = sd/(double)(t-1); 
+	       	System.out.println("Sigma : "+ Math.sqrt(sigma));
+	       	classify_neighbours(cross,x);
+	       	System.out.println("*--------------------------------------*");
+		}
+    }
+    
+    public static int[] kfold(int m1,int k1)
+    {
+    	int r=m1%k1;
+    	int sets=m1/k1;
+    	int[] foldset = new int[k1];
+    	for(int i=k1-1;i>=0;i--)
+    	{
+    		if(r>0)
+    		{
+    		foldset[i]=sets+1;
+    		r=r-1;
+    		}
+    		else
+    		{
+    			foldset[i]=sets;    		
+    		}
+    	}
+    	return foldset;
+        
+    }
+    
+    public static double finderror(int[] val_array2, int[] folds,int nn )
+    {
+    	int offset1=0,offset2=0,distance=0,d1=0,d2=0;//error=0,err=0;
+    	int nnsize=5; // have to put loop for size =1,2,3,4,5
+    		int err=0;
+			double error=0.0,siqma=0.0;
+    		for (int i1=0;i1<k;i1++)
+    		{
+    			if (i1==0)
+    			{
+    				offset2=folds[i1];
+    				offset1=0;
+    			}
+    			else
+    			{
+    				offset1=offset2;
+    				offset2=offset2+folds[i1];
+    			}
+    			for(int i2 = offset1;i2<offset2;i2++)
+    			{
+    				List<String> neighbour= new ArrayList<String>();
+    				TreeMap<Integer,List<String>> Tm = new TreeMap<Integer,List<String>>();
+    				for(int i3 = 0;i3<m;i3++)    //check for k or t - value of 9
+    				{
+    					if (!((i3>=offset1) && (i3<offset2)))
+    					{
+    						String[] CArray1 = idx_set.get(val_array2[i2]).split("\\s+");
+    						String[] CArray2 = idx_set.get(val_array2[i3]).split("\\s+");
+    						d1=Math.abs( Integer.parseInt(CArray1[0]) - Integer.parseInt(CArray2[0]));
+    						d2=Math.abs( Integer.parseInt(CArray1[1]) - Integer.parseInt(CArray2[1]));
+    						distance=d1*d1+d2*d2;
+    						if(Tm.containsKey(distance))
+    						{
+    							List<String> h1= Tm.get(distance);	
+    							h1.add(idx_set.get(val_array2[i3]));
+    							Tm.put(distance,h1);
+    						}
+    						else //(Tm.get(distance)==null)
+    						{	
+    							List<String> h1= new ArrayList<String>();
+    							h1.add(idx_set.get(val_array2[i3]));
+    							Tm.put(distance,h1);
+    						}
+    					}
+    				} 
+    				for(Integer key: Tm.keySet())
+					{	
+						List<String> h1=Tm.get(key);
+						for (int i = 0; i < h1.size(); i++) 
+						{
+							if(neighbour.size()<nn)
+    						{
+								neighbour.add(h1.get(i));
+    						}
+						    
+						}
+					}
+    				if (findsign(neighbour,nn,val_set.get(idx_set.get(val_array2[i2])))==0)
+    				{
+    					err++;
+    				}
+    			}
+    		} 
+    		//  calculate error and sigma for each k-nn & permutation set
+    		error=(double)err/(double)m;
+     		System.out.println("Error : "+error);
+//    	}
+    	return error;   //change this once done
+    }
+    
+    public static void classify_neighbours(String[][] grid, int nn )
+    {
+//    	List<String> neighbour= new ArrayList<String>();
+//		TreeMap<Integer,List<String>> Tm = new TreeMap<Integer,List<String>>();
+    	String[][] gridcopy = new String[r][c];
+    	for(int j1=0;j1<r;j1++)
+    	{
+    		for(int j2=0;j2<c;j2++)
+        	{
+    			if(grid[j1][j2].equals("."))
+    			{
+    				List<String> neighbour= new ArrayList<String>();
+    				TreeMap<Integer,List<String>> Tm = new TreeMap<Integer,List<String>>();
+    				for(int j3=0;j3<m;j3++)
+    				{
+    					String[] CArray1 = idx_set.get(j3).split("\\s+");
+						int d1=Math.abs(j1 - (Integer.parseInt(CArray1[0])));
+						int d2=Math.abs(j2 - (Integer.parseInt(CArray1[1])));
+						int distance=d1*d1+d2*d2;
+						if(Tm.containsKey(distance))
+						{
+							List<String> h1= Tm.get(distance);	
+							h1.add(idx_set.get(j3));
+							Tm.put(distance,h1);
+						}
+						else //(Tm.get(distance)==null)
+						{	
+							List<String> h1= new ArrayList<String>();
+							h1.add(idx_set.get(j3));
+							Tm.put(distance,h1);
+						}
+    				}
+    				
+    				for(Integer key: Tm.keySet())
+					{	
+						List<String> h1=Tm.get(key);
+						for (int i = 0; i < h1.size(); i++) 
+						{
+							if(neighbour.size()<nn)
+    						{
+								neighbour.add(h1.get(i));
+    						}
+						    
+						}
+					}
+    				int result = findsign(neighbour,nn,".");
+    				if (result>0)
+    				{
+    					gridcopy[j1][j2]="+";
+    				}
+    				else
+    				{
+    					gridcopy[j1][j2]="-";
+    				}
+    			}// big if ends here (check for dot in array)
+    			else
+    			{
+    				gridcopy[j1][j2]=grid[j1][j2];
+    			}
+    			System.out.print(" "+gridcopy[j1][j2]);
+        	}
+    		System.out.println("");
+    	}
+    }
+    
+    
+    public static int findsign(List<String> neighbour1,int nn,String sign)
+    {
+    	int plus=0,minus=0;
+    	if (sign.equals("."))
+    	{
+    		for (int i = 0; i < neighbour1.size(); i++) 
+    		{
+        		if((val_set.get(neighbour1.get(i))).equals("+"))
+    			{
+    				plus++;
+    			}
+    			else
+    			{
+    				minus++;
+    			}
+    		}
+        	if (plus>minus)
+        	{
+        		return 1;
+        	}
+        	else
+        	{
+        		return 0;
+        	}
+    		
+    	}
+    	else
+    	{
+    		for (int i = 0; i < neighbour1.size(); i++) 
+    		{
+        		if((val_set.get(neighbour1.get(i))).equals("+"))
+    			{
+    				plus++;
+    			}
+    			else
+    			{
+    				minus++;
+    			}
+    		}
+        	if (plus>minus)
+        	{
+        		if(sign.equals("+"))
+        		{
+        			return 1;
+        		}
+        		else
+        		{
+        			return 0;
+        		}
+        		
+        	}
+        	else if (plus==minus)
+        	{
+        		if(sign.equals("-"))
+        		{
+        			return 1;
+        		}
+        		else
+        		{
+        			return 0;
+        		}
+        	}
+        	else	
+        	{
+        		if(sign.equals("-"))
+        		{
+        			return 1;
+        		}
+        		else
+        		{
+        			return 0;
+        		}
+        	}
+    	}
+    }
+}
+//
+///* This program finds you the list of possible destinations for having between two friends given 
+// * the city map(as edges & nodes) and starting point of two friends and travel instructions 
+// */
+//import java.io.BufferedReader;
+//import java.io.FileReader;
+//import java.io.IOException;
+//import java.util.*;
+//public class sample
+//{
+//    public static void main (String [] args) throws IOException
+//    {
+//    	int[] setlist1 = kset(11,4);
+//    	int s = setlist1.length;
+//    	for (int i=0;i<s;i++)
+//    	{
+//    		System.out.println(setlist1[i]);
+//    	}
+//    }
+//    public static int[] kset(int k1,int m1)
+//    {
+//    	int r=k1%m1;
+//    	int sets=k1/m1;
+//    	int[] setlist = new int[m1];
+//    	for(int i=m1-1;i>=0;i--)
+//    	{
+//    		if(r>0)
+//    		{
+//    		setlist[i]=sets+1;
+//    		r=r-1;
+//    		}
+//    		else
+//    		{
+//    			setlist[i]=sets;    		
+//    		}
+//    	}
+//    	return setlist;
+//    }
+//}
